@@ -73,6 +73,12 @@
          Ganti link gambar dan nomor WA di sini!
     =============================================== -->
     <script>
+        // ======= SUPABASE CREDENTIALS (HARDCODED - JANGAN DIUBAH) =======
+        const SUPABASE_URL  = "https://jxvemspowdcrvykkfjuh.supabase.co";
+        const SUPABASE_KEY  = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4dmVtc3Bvd2RjcnZ5a2tmanVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzNjMxNjksImV4cCI6MjA5NTkzOTE2OX0.3xvhXmE-I3uzuV_IzZzMupxkgWWdqTrZMAPQmz2hGiE";
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // ======= DEFAULT CONFIG (fallback jika Supabase belum punya data) =======
         const APP_CONFIG = {
             content: {
                 headline: "Bentuk <span class='text-primary'>Tubuh Ideal</span> & Hidup Lebih Sehat Tanpa Tersiksa",
@@ -90,32 +96,65 @@
             whatsapp: {
                 number: "6281234567890",
                 defaultMessage: "Halo Coach, saya ingin konsultasi mengenai program penurunan berat badan dan healthy lifestyle."
-            },
-            supabase: {
-                url: "https://jxvemspowdcrvykkfjuh.supabase.co",
-                anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4dmVtc3Bvd2RjcnZ5a2tmanVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzNjMxNjksImV4cCI6MjA5NTkzOTE2OX0.3xvhXmE-I3uzuV_IzZzMupxkgWWdqTrZMAPQmz2hGiE"
             }
         };
 
-        // Load saved settings dari localStorage (agar nomor WA & config persisten)
-        (function() {
+        // ======= LOAD CONFIG DARI SUPABASE SAAT PAGE DIBUKA =======
+        async function loadConfigFromSupabase() {
             try {
-                const saved = JSON.parse(localStorage.getItem('fitlife_config') || '{}');
-                if (saved.waNumber)    APP_CONFIG.whatsapp.number = saved.waNumber;
-                if (saved.waMessage)   APP_CONFIG.whatsapp.defaultMessage = saved.waMessage;
-                if (saved.headline)    APP_CONFIG.content.headline = saved.headline;
-                if (saved.subheadline) APP_CONFIG.content.subheadline = saved.subheadline;
-                if (saved.imgHero)     APP_CONFIG.images.hero = saved.imgHero;
-                if (saved.imgCoach)    APP_CONFIG.images.coach = saved.imgCoach;
-                if (saved.imgCom1)     APP_CONFIG.images.community1 = saved.imgCom1;
-                if (saved.imgCom2)     APP_CONFIG.images.community2 = saved.imgCom2;
-                if (saved.imgTesti1)   APP_CONFIG.images.testi1 = saved.imgTesti1;
-                if (saved.imgTesti2)   APP_CONFIG.images.testi2 = saved.imgTesti2;
-                if (saved.imgBa)       APP_CONFIG.images.beforeAfter = saved.imgBa;
-                if (saved.supabaseUrl) APP_CONFIG.supabase.url = saved.supabaseUrl;
-                if (saved.supabaseKey) APP_CONFIG.supabase.anonKey = saved.supabaseKey;
-            } catch(e) {}
-        })();
+                const { data, error } = await supabase
+                    .from('site_config')
+                    .select('key, value');
+                if (error || !data) return;
+                const cfg = {};
+                data.forEach(row => { cfg[row.key] = row.value; });
+
+                if (cfg.wa_number)    APP_CONFIG.whatsapp.number          = cfg.wa_number;
+                if (cfg.wa_message)   APP_CONFIG.whatsapp.defaultMessage   = cfg.wa_message;
+                if (cfg.headline)     APP_CONFIG.content.headline           = cfg.headline;
+                if (cfg.subheadline)  APP_CONFIG.content.subheadline        = cfg.subheadline;
+                if (cfg.img_hero)     APP_CONFIG.images.hero                = cfg.img_hero;
+                if (cfg.img_coach)    APP_CONFIG.images.coach               = cfg.img_coach;
+                if (cfg.img_com1)     APP_CONFIG.images.community1          = cfg.img_com1;
+                if (cfg.img_com2)     APP_CONFIG.images.community2          = cfg.img_com2;
+                if (cfg.img_testi1)   APP_CONFIG.images.testi1              = cfg.img_testi1;
+                if (cfg.img_testi2)   APP_CONFIG.images.testi2              = cfg.img_testi2;
+                if (cfg.img_ba)       APP_CONFIG.images.beforeAfter         = cfg.img_ba;
+
+                // Terapkan ke halaman
+                applyConfigToPage();
+            } catch(e) { console.warn("Config load error:", e); }
+        }
+
+        function applyConfigToPage() {
+            const h = document.getElementById('hero-headline');
+            const s = document.getElementById('hero-subheadline');
+            const ih = document.getElementById('img-hero');
+            const ic = document.getElementById('img-coach');
+            if (h)  h.innerHTML  = APP_CONFIG.content.headline;
+            if (s)  s.innerHTML  = APP_CONFIG.content.subheadline;
+            if (ih) ih.src       = APP_CONFIG.images.hero;
+            if (ic) ic.src       = APP_CONFIG.images.coach;
+            const com1 = document.getElementById('img-community1');
+            const com2 = document.getElementById('img-community2');
+            const t1   = document.getElementById('img-testi1');
+            const t2   = document.getElementById('img-testi2');
+            const ba   = document.getElementById('img-before-after');
+            if (com1) com1.src = APP_CONFIG.images.community1;
+            if (com2) com2.src = APP_CONFIG.images.community2;
+            if (t1)   t1.src   = APP_CONFIG.images.testi1;
+            if (t2)   t2.src   = APP_CONFIG.images.testi2;
+            if (ba)   ba.src   = APP_CONFIG.images.beforeAfter;
+        }
+
+        // ======= SAVE CONFIG KE SUPABASE (upsert per key) =======
+        async function saveConfigToSupabase(configObj) {
+            const rows = Object.entries(configObj).map(([key, value]) => ({ key, value }));
+            const { error } = await supabase
+                .from('site_config')
+                .upsert(rows, { onConflict: 'key' });
+            if (error) throw error;
+        }
     </script>
 
     <!-- NAVBAR -->
@@ -1092,20 +1131,10 @@ Konsultasi Langsung via WA</textarea>
 
     <!-- JAVASCRIPT LOGIC -->
     <script>
-        // 1. INJEKSI CONFIG (Teks & Gambar)
+        // 1. INJEKSI CONFIG (load dari Supabase, fallback ke default)
         document.addEventListener('DOMContentLoaded', () => {
-            // Inject Teks Headline & Subheadline
-            document.getElementById('hero-headline').innerHTML = APP_CONFIG.content.headline;
-            document.getElementById('hero-subheadline').innerHTML = APP_CONFIG.content.subheadline;
-
-            // Inject Gambar (Hero, Coach, Komunitas, Testimoni)
-            document.getElementById('img-hero').src = APP_CONFIG.images.hero;
-            document.getElementById('img-coach').src = APP_CONFIG.images.coach;
-            document.getElementById('img-community1').src = APP_CONFIG.images.community1;
-            document.getElementById('img-community2').src = APP_CONFIG.images.community2;
-            document.getElementById('img-testi1').src = APP_CONFIG.images.testi1;
-            document.getElementById('img-testi2').src = APP_CONFIG.images.testi2;
-            document.getElementById('img-before-after').src = APP_CONFIG.images.beforeAfter;
+            applyConfigToPage();
+            loadConfigFromSupabase();
         });
 
         // 2. WHATSAPP REDIRECT LOGIC (global agar bisa dipanggil dari onclick di HTML)
@@ -1229,21 +1258,10 @@ Konsultasi Langsung via WA</textarea>
             lastBmiResult = `BMI: ${bmi} (${status})`;
         }
 
-        // 6. SUPABASE INTEGRATION (FORM SUBMIT) - DENGAN PROTEKSI ERROR
+        // 6. FORM KONSULTASI → KIRIM KE WHATSAPP
         document.addEventListener('DOMContentLoaded', () => {
-        let supabase = null;
-        try {
-            // Hanya jalankan Supabase jika URL sudah diganti (mencegah crash)
-            if (APP_CONFIG.supabase.url && APP_CONFIG.supabase.url !== "YOUR_SUPABASE_URL") {
-                supabase = window.supabase.createClient(APP_CONFIG.supabase.url, APP_CONFIG.supabase.anonKey);
-            }
-        } catch (error) {
-            console.error("Supabase config belum diatur:", error);
-        }
-
         document.getElementById('leadForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-
             const btn = document.getElementById('submitBtn');
             const msgBox = document.getElementById('form-message');
             const originalBtnText = btn.innerText;
@@ -1251,14 +1269,13 @@ Konsultasi Langsung via WA</textarea>
             btn.innerText = "Membuka WhatsApp...";
             btn.disabled = true;
 
-            const nama = document.getElementById('form-nama').value;
-            const wa = document.getElementById('form-wa').value;
-            const usia = document.getElementById('form-usia').value;
-            const target = document.getElementById('form-target').value;
+            const nama    = document.getElementById('form-nama').value;
+            const wa      = document.getElementById('form-wa').value;
+            const usia    = document.getElementById('form-usia').value;
+            const target  = document.getElementById('form-target').value;
             const keluhan = document.getElementById('form-keluhan').value;
-            const bmi = lastBmiResult || "Belum cek";
+            const bmi     = lastBmiResult || "Belum cek";
 
-            // Susun pesan WA
             const pesan =
 `Halo Coach, saya ingin konsultasi program kesehatan.
 
@@ -1271,10 +1288,8 @@ Konsultasi Langsung via WA</textarea>
 
 Mohon bantuannya, terima kasih! 🙏`;
 
-            const waNumber = APP_CONFIG.whatsapp.number;
-            const waUrl = `https://wa.me/${waNumber}?text=${encodeURIComponent(pesan)}`;
+            const waUrl = `https://wa.me/${APP_CONFIG.whatsapp.number}?text=${encodeURIComponent(pesan)}`;
 
-            // Tampilkan pesan sukses
             msgBox.classList.remove('hidden', 'bg-red-100', 'text-red-700', 'bg-yellow-100', 'text-yellow-700');
             msgBox.classList.add('bg-green-100', 'text-green-700');
             msgBox.innerHTML = '<i class="fa-solid fa-circle-check"></i> <b>Berhasil!</b> Anda akan diarahkan ke WhatsApp Coach.';
@@ -1288,7 +1303,7 @@ Mohon bantuannya, terima kasih! 🙏`;
                 btn.disabled = false;
             }, 800);
         });
-        }); // END DOMContentLoaded #3 (Supabase + Form)
+        }); // END DOMContentLoaded #3 (Form → WA)
 
         // ===================== ADMIN / LOGIN LOGIC =====================
         // Password disimpan sebagai SHA-256 hash (bukan plaintext)
@@ -1379,34 +1394,54 @@ Mohon bantuannya, terima kasih! 🙏`;
             if (prev) prev.src = input.value;
         }
 
-        function populateAdminFields() {
-            // Load dari localStorage kalau ada, fallback ke APP_CONFIG / default
-            const saved = JSON.parse(localStorage.getItem('fitlife_config') || '{}');
+        async function populateAdminFields() {
+            // Load terbaru dari Supabase dulu
+            try {
+                const { data, error } = await supabase.from('site_config').select('key, value');
+                if (!error && data) {
+                    const cfg = {};
+                    data.forEach(r => { cfg[r.key] = r.value; });
+                    if (cfg.wa_number)    APP_CONFIG.whatsapp.number           = cfg.wa_number;
+                    if (cfg.wa_message)   APP_CONFIG.whatsapp.defaultMessage    = cfg.wa_message;
+                    if (cfg.headline)     APP_CONFIG.content.headline            = cfg.headline;
+                    if (cfg.subheadline)  APP_CONFIG.content.subheadline         = cfg.subheadline;
+                    if (cfg.img_hero)     APP_CONFIG.images.hero                 = cfg.img_hero;
+                    if (cfg.img_coach)    APP_CONFIG.images.coach                = cfg.img_coach;
+                    if (cfg.img_com1)     APP_CONFIG.images.community1           = cfg.img_com1;
+                    if (cfg.img_com2)     APP_CONFIG.images.community2           = cfg.img_com2;
+                    if (cfg.img_testi1)   APP_CONFIG.images.testi1               = cfg.img_testi1;
+                    if (cfg.img_testi2)   APP_CONFIG.images.testi2               = cfg.img_testi2;
+                    if (cfg.img_ba)       APP_CONFIG.images.beforeAfter          = cfg.img_ba;
+                    if (cfg.coach_name)   document.getElementById('adm-coach-name').value   = cfg.coach_name;
+                    if (cfg.coach_bio)    document.getElementById('adm-coach-bio').value    = cfg.coach_bio;
+                    if (cfg.exp_years)    document.getElementById('adm-exp-years').value    = cfg.exp_years;
+                    if (cfg.members)      document.getElementById('adm-members').value      = cfg.members;
+                    if (cfg.brand_name)   document.getElementById('adm-brand-name').value   = cfg.brand_name;
+                    if (cfg.footer_tagline) document.getElementById('adm-footer-tagline').value = cfg.footer_tagline;
+                }
+            } catch(e) { console.warn('Gagal load config:', e); }
 
-            document.getElementById('adm-headline').value = saved.headline || "Bentuk Tubuh Ideal & Hidup Lebih Sehat Tanpa Tersiksa";
-            document.getElementById('adm-subheadline').value = saved.subheadline || APP_CONFIG.content.subheadline;
-            document.getElementById('adm-coach-name').value = saved.coachName || "Coach Rina Wijaya";
-            document.getElementById('adm-coach-bio').value = saved.coachBio || "Halo! Saya adalah Wellness Coach yang berdedikasi membantu Anda mencapai berat badan ideal dan gaya hidup sehat yang berkelanjutan. Bukan sekadar diet sesaat, tapi perubahan habit seumur hidup.";
-            document.getElementById('adm-exp-years').value = saved.expYears || "5+";
-            document.getElementById('adm-members').value = saved.members || "500+";
-            document.getElementById('adm-brand-name').value = saved.brandName || "FitLife";
-            document.getElementById('adm-footer-tagline').value = saved.footerTagline || "Independent Herbalife Member & Wellness Coach. Berkomitmen menciptakan masyarakat yang lebih sehat dan bahagia.";
-            document.getElementById('adm-supabase-url').value = saved.supabaseUrl || (APP_CONFIG.supabase.url !== "YOUR_SUPABASE_URL" ? APP_CONFIG.supabase.url : "");
-            document.getElementById('adm-supabase-key').value = saved.supabaseKey || (APP_CONFIG.supabase.anonKey !== "YOUR_SUPABASE_ANON_KEY" ? APP_CONFIG.supabase.anonKey : "");
+            // Isi field dari APP_CONFIG (sudah di-update dari Supabase di atas)
+            document.getElementById('adm-headline').value     = APP_CONFIG.content.headline.replace(/<[^>]+>/g, '').trim();
+            document.getElementById('adm-subheadline').value  = APP_CONFIG.content.subheadline;
+            document.getElementById('adm-wa-number').value    = APP_CONFIG.whatsapp.number;
+            document.getElementById('adm-wa-message').value   = APP_CONFIG.whatsapp.defaultMessage;
 
-            // Nomor WA — prioritas: localStorage → APP_CONFIG → kosong
-            document.getElementById('adm-wa-number').value = saved.waNumber || APP_CONFIG.whatsapp.number;
-            document.getElementById('adm-wa-message').value = saved.waMessage || APP_CONFIG.whatsapp.defaultMessage;
+            // Supabase URL field (readonly info)
+            const supabaseUrlEl = document.getElementById('adm-supabase-url');
+            const supabaseKeyEl = document.getElementById('adm-supabase-key');
+            if (supabaseUrlEl) supabaseUrlEl.value = SUPABASE_URL;
+            if (supabaseKeyEl) supabaseKeyEl.value = "(tersimpan di kode)";
 
             // Images
             const imgMap = {
-                'adm-img-hero':   ['prev-hero',   saved.imgHero   || APP_CONFIG.images.hero],
-                'adm-img-coach':  ['prev-coach',  saved.imgCoach  || APP_CONFIG.images.coach],
-                'adm-img-com1':   ['prev-com1',   saved.imgCom1   || APP_CONFIG.images.community1],
-                'adm-img-com2':   ['prev-com2',   saved.imgCom2   || APP_CONFIG.images.community2],
-                'adm-img-testi1': ['prev-testi1', saved.imgTesti1 || APP_CONFIG.images.testi1],
-                'adm-img-testi2': ['prev-testi2', saved.imgTesti2 || APP_CONFIG.images.testi2],
-                'adm-img-ba':     ['prev-ba',     saved.imgBa     || APP_CONFIG.images.beforeAfter],
+                'adm-img-hero':   ['prev-hero',   APP_CONFIG.images.hero],
+                'adm-img-coach':  ['prev-coach',  APP_CONFIG.images.coach],
+                'adm-img-com1':   ['prev-com1',   APP_CONFIG.images.community1],
+                'adm-img-com2':   ['prev-com2',   APP_CONFIG.images.community2],
+                'adm-img-testi1': ['prev-testi1', APP_CONFIG.images.testi1],
+                'adm-img-testi2': ['prev-testi2', APP_CONFIG.images.testi2],
+                'adm-img-ba':     ['prev-ba',     APP_CONFIG.images.beforeAfter],
             };
             Object.entries(imgMap).forEach(([inputId, [prevId, url]]) => {
                 document.getElementById(inputId).value = url;
@@ -1449,78 +1484,68 @@ Mohon bantuannya, terima kasih! 🙏`;
             document.getElementById('prev-wa-link').textContent = preview;
         }
 
-        function applyAdminChanges() {
-            // Update APP_CONFIG
-            APP_CONFIG.content.headline = document.getElementById('adm-headline').value;
-            APP_CONFIG.content.subheadline = document.getElementById('adm-subheadline').value;
-            APP_CONFIG.images.hero = document.getElementById('adm-img-hero').value;
-            APP_CONFIG.images.coach = document.getElementById('adm-img-coach').value;
-            APP_CONFIG.images.community1 = document.getElementById('adm-img-com1').value;
-            APP_CONFIG.images.community2 = document.getElementById('adm-img-com2').value;
-            APP_CONFIG.images.testi1 = document.getElementById('adm-img-testi1').value;
-            APP_CONFIG.images.testi2 = document.getElementById('adm-img-testi2').value;
-            APP_CONFIG.images.beforeAfter = document.getElementById('adm-img-ba').value;
-            APP_CONFIG.whatsapp.number = document.getElementById('adm-wa-number').value;
+        async function applyAdminChanges() {
+            const btn = document.querySelector('[onclick="applyAdminChanges()"]');
+            if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>Menyimpan...'; }
+
+            // Kumpulkan semua nilai dari form admin
+            APP_CONFIG.content.headline        = document.getElementById('adm-headline').value;
+            APP_CONFIG.content.subheadline     = document.getElementById('adm-subheadline').value;
+            APP_CONFIG.images.hero             = document.getElementById('adm-img-hero').value;
+            APP_CONFIG.images.coach            = document.getElementById('adm-img-coach').value;
+            APP_CONFIG.images.community1       = document.getElementById('adm-img-com1').value;
+            APP_CONFIG.images.community2       = document.getElementById('adm-img-com2').value;
+            APP_CONFIG.images.testi1           = document.getElementById('adm-img-testi1').value;
+            APP_CONFIG.images.testi2           = document.getElementById('adm-img-testi2').value;
+            APP_CONFIG.images.beforeAfter      = document.getElementById('adm-img-ba').value;
+            APP_CONFIG.whatsapp.number         = document.getElementById('adm-wa-number').value;
             APP_CONFIG.whatsapp.defaultMessage = document.getElementById('adm-wa-message').value;
 
-            // Simpan ke localStorage agar persisten setelah refresh
-            localStorage.setItem('fitlife_config', JSON.stringify({
-                headline: APP_CONFIG.content.headline,
-                subheadline: APP_CONFIG.content.subheadline,
-                coachName: document.getElementById('adm-coach-name').value,
-                coachBio: document.getElementById('adm-coach-bio').value,
-                expYears: document.getElementById('adm-exp-years').value,
-                members: document.getElementById('adm-members').value,
-                brandName: document.getElementById('adm-brand-name').value,
-                footerTagline: document.getElementById('adm-footer-tagline').value,
-                waNumber: APP_CONFIG.whatsapp.number,
-                waMessage: APP_CONFIG.whatsapp.defaultMessage,
-                supabaseUrl: document.getElementById('adm-supabase-url').value,
-                supabaseKey: document.getElementById('adm-supabase-key').value,
-                imgHero: APP_CONFIG.images.hero,
-                imgCoach: APP_CONFIG.images.coach,
-                imgCom1: APP_CONFIG.images.community1,
-                imgCom2: APP_CONFIG.images.community2,
-                imgTesti1: APP_CONFIG.images.testi1,
-                imgTesti2: APP_CONFIG.images.testi2,
-                imgBa: APP_CONFIG.images.beforeAfter,
-            }));
+            // Simpan ke Supabase
+            try {
+                await saveConfigToSupabase({
+                    wa_number:       APP_CONFIG.whatsapp.number,
+                    wa_message:      APP_CONFIG.whatsapp.defaultMessage,
+                    headline:        APP_CONFIG.content.headline,
+                    subheadline:     APP_CONFIG.content.subheadline,
+                    img_hero:        APP_CONFIG.images.hero,
+                    img_coach:       APP_CONFIG.images.coach,
+                    img_com1:        APP_CONFIG.images.community1,
+                    img_com2:        APP_CONFIG.images.community2,
+                    img_testi1:      APP_CONFIG.images.testi1,
+                    img_testi2:      APP_CONFIG.images.testi2,
+                    img_ba:          APP_CONFIG.images.beforeAfter,
+                    coach_name:      document.getElementById('adm-coach-name').value,
+                    coach_bio:       document.getElementById('adm-coach-bio').value,
+                    exp_years:       document.getElementById('adm-exp-years').value,
+                    members:         document.getElementById('adm-members').value,
+                    brand_name:      document.getElementById('adm-brand-name').value,
+                    footer_tagline:  document.getElementById('adm-footer-tagline').value,
+                });
+            } catch(e) {
+                alert('Gagal menyimpan ke Supabase: ' + e.message);
+                if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-floppy-disk mr-2"></i>Simpan & Terapkan'; }
+                return;
+            }
 
-            // Apply to live page
-            document.getElementById('hero-headline').innerHTML = APP_CONFIG.content.headline;
-            document.getElementById('hero-subheadline').innerHTML = APP_CONFIG.content.subheadline;
-            document.getElementById('img-hero').src = APP_CONFIG.images.hero;
-            document.getElementById('img-coach').src = APP_CONFIG.images.coach;
-            if (document.getElementById('img-community1')) document.getElementById('img-community1').src = APP_CONFIG.images.community1;
-            if (document.getElementById('img-community2')) document.getElementById('img-community2').src = APP_CONFIG.images.community2;
-            if (document.getElementById('img-testi1')) document.getElementById('img-testi1').src = APP_CONFIG.images.testi1;
-            if (document.getElementById('img-testi2')) document.getElementById('img-testi2').src = APP_CONFIG.images.testi2;
-            if (document.getElementById('img-before-after')) document.getElementById('img-before-after').src = APP_CONFIG.images.beforeAfter;
+            // Terapkan ke halaman langsung
+            applyConfigToPage();
 
-            // Apply testimonial text changes
-            const t1Name = document.getElementById('adm-t1-name').value;
-            const t1Sub = document.getElementById('adm-t1-sub').value;
-            const t1Result = document.getElementById('adm-t1-result').value;
-            const t1Text = document.getElementById('adm-t1-text').value;
-            const t2Name = document.getElementById('adm-t2-name').value;
-            const t2Sub = document.getElementById('adm-t2-sub').value;
-            const t2Result = document.getElementById('adm-t2-result').value;
-            const t2Text = document.getElementById('adm-t2-text').value;
-
-            if (document.getElementById('live-t1-name')) document.getElementById('live-t1-name').textContent = t1Name;
-            if (document.getElementById('live-t1-sub')) document.getElementById('live-t1-sub').textContent = t1Sub;
-            if (document.getElementById('live-t1-result')) document.getElementById('live-t1-result').textContent = t1Result;
-            if (document.getElementById('live-t1-text')) document.getElementById('live-t1-text').textContent = t1Text;
-            if (document.getElementById('live-t2-name')) document.getElementById('live-t2-name').textContent = t2Name;
-            if (document.getElementById('live-t2-sub')) document.getElementById('live-t2-sub').textContent = t2Sub;
-            if (document.getElementById('live-t2-result')) document.getElementById('live-t2-result').textContent = t2Result;
-            if (document.getElementById('live-t2-text')) document.getElementById('live-t2-text').textContent = t2Text;
+            // Testimonial
+            const ids = ['t1-name','t1-sub','t1-result','t1-text','t2-name','t2-sub','t2-result','t2-text'];
+            ids.forEach(id => {
+                const adm = document.getElementById('adm-' + id);
+                const live = document.getElementById('live-' + id);
+                if (adm && live) live.textContent = adm.value;
+            });
 
             // Brand name
             const brand = document.getElementById('adm-brand-name').value;
             document.querySelectorAll('.brand-name').forEach(el => el.textContent = brand);
 
-            // Show save success
+            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-floppy-disk mr-2"></i>Simpan & Terapkan'; }
+
+            // Tampilkan banner sukses
             const banner = document.getElementById('save-banner');
             banner.classList.remove('hidden');
             setTimeout(() => banner.classList.add('hidden'), 4000);
