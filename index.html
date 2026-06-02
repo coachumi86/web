@@ -77,7 +77,7 @@
         const SUPABASE_URL = "https://jxvemspowdcrvykkfjuh.supabase.co";
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4dmVtc3Bvd2RjcnZ5a2tmanVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzNjMxNjksImV4cCI6MjA5NTkzOTE2OX0.3xvhXmE-I3uzuV_IzZzMupxkgWWdqTrZMAPQmz2hGiE";
         // Init supabase langsung - CDN sudah di <head> jadi pasti ready
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        window._sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         // ======= DEFAULT CONFIG (fallback jika Supabase belum punya data) =======
         const APP_CONFIG = {
@@ -103,7 +103,7 @@
         // ======= LOAD CONFIG DARI SUPABASE SAAT PAGE DIBUKA =======
         async function loadConfigFromSupabase() {
             try {
-                const { data, error } = await supabase
+                const { data, error } = await window._sb
                     .from('site_config')
                     .select('key, value');
                 if (error || !data) return;
@@ -151,7 +151,7 @@
         // ======= SAVE CONFIG KE SUPABASE (upsert per key) =======
         async function saveConfigToSupabase(configObj) {
             const rows = Object.entries(configObj).map(([key, value]) => ({ key, value }));
-            const { error } = await supabase
+            const { error } = await window._sb
                 .from('site_config')
                 .upsert(rows, { onConflict: 'key' });
             if (error) throw error;
@@ -1398,7 +1398,7 @@ Mohon bantuannya, terima kasih! 🙏`;
         async function populateAdminFields() {
             // Load terbaru dari Supabase dulu
             try {
-                const { data, error } = await supabase.from('site_config').select('key, value');
+                const { data, error } = await window._sb.from('site_config').select('key, value');
                 if (!error && data) {
                     const cfg = {};
                     data.forEach(r => { cfg[r.key] = r.value; });
