@@ -85,17 +85,37 @@
                 community2: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
                 testi1: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80",
                 testi2: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80",
-                beforeAfter: "https://images.unsplash.com/photo-1627483262112-039e9a0a0f16?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" // Gunakan foto asli Before After
+                beforeAfter: "https://images.unsplash.com/photo-1627483262112-039e9a0a0f16?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
             },
             whatsapp: {
-                number: "6281234567890", // GANTI DENGAN NOMOR WA ANDA (Gunakan kode negara tanpa +)
+                number: "6281234567890",
                 defaultMessage: "Halo Coach, saya ingin konsultasi mengenai program penurunan berat badan dan healthy lifestyle."
             },
             supabase: {
-                url: "https://jxvemspowdcrvykkfjuh.supabase.co", // GANTI DENGAN SUPABASE URL ANDA
-                anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4dmVtc3Bvd2RjcnZ5a2tmanVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzNjMxNjksImV4cCI6MjA5NTkzOTE2OX0.3xvhXmE-I3uzuV_IzZzMupxkgWWdqTrZMAPQmz2hGiE" // GANTI DENGAN SUPABASE ANON KEY ANDA
+                url: "https://jxvemspowdcrvykkfjuh.supabase.co",
+                anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4dmVtc3Bvd2RjcnZ5a2tmanVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzNjMxNjksImV4cCI6MjA5NTkzOTE2OX0.3xvhXmE-I3uzuV_IzZzMupxkgWWdqTrZMAPQmz2hGiE"
             }
         };
+
+        // Load saved settings dari localStorage (agar nomor WA & config persisten)
+        (function() {
+            try {
+                const saved = JSON.parse(localStorage.getItem('fitlife_config') || '{}');
+                if (saved.waNumber)    APP_CONFIG.whatsapp.number = saved.waNumber;
+                if (saved.waMessage)   APP_CONFIG.whatsapp.defaultMessage = saved.waMessage;
+                if (saved.headline)    APP_CONFIG.content.headline = saved.headline;
+                if (saved.subheadline) APP_CONFIG.content.subheadline = saved.subheadline;
+                if (saved.imgHero)     APP_CONFIG.images.hero = saved.imgHero;
+                if (saved.imgCoach)    APP_CONFIG.images.coach = saved.imgCoach;
+                if (saved.imgCom1)     APP_CONFIG.images.community1 = saved.imgCom1;
+                if (saved.imgCom2)     APP_CONFIG.images.community2 = saved.imgCom2;
+                if (saved.imgTesti1)   APP_CONFIG.images.testi1 = saved.imgTesti1;
+                if (saved.imgTesti2)   APP_CONFIG.images.testi2 = saved.imgTesti2;
+                if (saved.imgBa)       APP_CONFIG.images.beforeAfter = saved.imgBa;
+                if (saved.supabaseUrl) APP_CONFIG.supabase.url = saved.supabaseUrl;
+                if (saved.supabaseKey) APP_CONFIG.supabase.anonKey = saved.supabaseKey;
+            } catch(e) {}
+        })();
     </script>
 
     <!-- NAVBAR -->
@@ -705,7 +725,7 @@
                 </button>
             </div>
             <p class="text-xs text-gray-400 text-center mt-6">
-                <i class="fa-solid fa-circle-info"></i> Demo: user <b>admin</b> / pass <b>fitlife123</b>
+                <i class="fa-solid fa-circle-info"></i> Hanya untuk pengelola halaman ini.
             </p>
         </div>
     </div>
@@ -1223,55 +1243,50 @@ Konsultasi Langsung via WA</textarea>
 
         document.getElementById('leadForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            
+
             const btn = document.getElementById('submitBtn');
             const msgBox = document.getElementById('form-message');
             const originalBtnText = btn.innerText;
-            
-            // Cek apakah Supabase berhasil terhubung
-            if(!supabase) {
-                msgBox.classList.remove('hidden', 'bg-green-100', 'text-green-700', 'bg-red-100', 'text-red-700');
-                msgBox.classList.add('bg-yellow-100', 'text-yellow-700');
-                msgBox.innerHTML = "<b>Mode Demo:</b> Harap hubungkan dengan database Supabase Anda terlebih dahulu di bagian script CONFIG.";
-                return;
-            }
 
-            btn.innerText = "Mengirim Data...";
+            btn.innerText = "Membuka WhatsApp...";
             btn.disabled = true;
 
-            const formData = {
-                nama_lengkap: document.getElementById('form-nama').value,
-                nomor_whatsapp: document.getElementById('form-wa').value,
-                usia: parseInt(document.getElementById('form-usia').value),
-                target: document.getElementById('form-target').value,
-                keluhan_utama: document.getElementById('form-keluhan').value,
-                hasil_bmi_terakhir: lastBmiResult || "Belum cek"
-            };
+            const nama = document.getElementById('form-nama').value;
+            const wa = document.getElementById('form-wa').value;
+            const usia = document.getElementById('form-usia').value;
+            const target = document.getElementById('form-target').value;
+            const keluhan = document.getElementById('form-keluhan').value;
+            const bmi = lastBmiResult || "Belum cek";
 
-            try {
-                // Pastikan nama tabel di Supabase adalah 'leads_konsultasi'
-                const { data, error } = await supabase
-                    .from('leads_konsultasi')
-                    .insert([formData]);
+            // Susun pesan WA
+            const pesan =
+`Halo Coach, saya ingin konsultasi program kesehatan.
 
-                if (error) throw error;
+*Nama:* ${nama}
+*No. WA:* ${wa}
+*Usia:* ${usia} tahun
+*Target:* ${target}
+*Keluhan:* ${keluhan || '-'}
+*Hasil BMI:* ${bmi}
 
-                // Success
-                msgBox.classList.remove('hidden', 'bg-red-100', 'text-red-700', 'bg-yellow-100', 'text-yellow-700');
-                msgBox.classList.add('bg-green-100', 'text-green-700');
-                msgBox.innerHTML = '<i class="fa-solid fa-circle-check"></i> <b>Berhasil!</b> Data Anda telah terkirim. Coach kami akan segera menghubungi Anda.';
-                
-                document.getElementById('leadForm').reset();
-            } catch (error) {
-                // Error
-                console.error(error);
-                msgBox.classList.remove('hidden', 'bg-green-100', 'text-green-700', 'bg-yellow-100', 'text-yellow-700');
-                msgBox.classList.add('bg-red-100', 'text-red-700');
-                msgBox.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i> <b>Gagal!</b> Terjadi kesalahan sistem. Silakan hubungi via WhatsApp.';
-            } finally {
+Mohon bantuannya, terima kasih! 🙏`;
+
+            const waNumber = APP_CONFIG.whatsapp.number;
+            const waUrl = `https://wa.me/${waNumber}?text=${encodeURIComponent(pesan)}`;
+
+            // Tampilkan pesan sukses
+            msgBox.classList.remove('hidden', 'bg-red-100', 'text-red-700', 'bg-yellow-100', 'text-yellow-700');
+            msgBox.classList.add('bg-green-100', 'text-green-700');
+            msgBox.innerHTML = '<i class="fa-solid fa-circle-check"></i> <b>Berhasil!</b> Anda akan diarahkan ke WhatsApp Coach.';
+
+            document.getElementById('leadForm').reset();
+            lastBmiResult = "";
+
+            setTimeout(() => {
+                window.open(waUrl, '_blank');
                 btn.innerText = originalBtnText;
                 btn.disabled = false;
-            }
+            }, 800);
         });
         }); // END DOMContentLoaded #3 (Supabase + Form)
 
@@ -1365,43 +1380,42 @@ Konsultasi Langsung via WA</textarea>
         }
 
         function populateAdminFields() {
-            // General
-            document.getElementById('adm-headline').value = APP_CONFIG.content.headline.replace(/<[^>]+>/g, '').trim() + " (edit bebas)";
-            document.getElementById('adm-headline').value = "Bentuk Tubuh Ideal & Hidup Lebih Sehat Tanpa Tersiksa";
-            document.getElementById('adm-subheadline').value = APP_CONFIG.content.subheadline;
-            document.getElementById('adm-coach-name').value = "Coach Rina Wijaya";
-            document.getElementById('adm-coach-bio').value = "Halo! Saya adalah Wellness Coach yang berdedikasi membantu Anda mencapai berat badan ideal dan gaya hidup sehat yang berkelanjutan. Bukan sekadar diet sesaat, tapi perubahan habit seumur hidup.";
-            document.getElementById('adm-exp-years').value = "5+";
-            document.getElementById('adm-members').value = "500+";
-            document.getElementById('adm-brand-name').value = "FitLife";
-            document.getElementById('adm-footer-tagline').value = "Independent Herbalife Member & Wellness Coach. Berkomitmen menciptakan masyarakat yang lebih sehat dan bahagia.";
-            document.getElementById('adm-supabase-url').value = APP_CONFIG.supabase.url !== "YOUR_SUPABASE_URL" ? APP_CONFIG.supabase.url : "";
-            document.getElementById('adm-supabase-key').value = APP_CONFIG.supabase.anonKey !== "YOUR_SUPABASE_ANON_KEY" ? APP_CONFIG.supabase.anonKey : "";
+            // Load dari localStorage kalau ada, fallback ke APP_CONFIG / default
+            const saved = JSON.parse(localStorage.getItem('fitlife_config') || '{}');
+
+            document.getElementById('adm-headline').value = saved.headline || "Bentuk Tubuh Ideal & Hidup Lebih Sehat Tanpa Tersiksa";
+            document.getElementById('adm-subheadline').value = saved.subheadline || APP_CONFIG.content.subheadline;
+            document.getElementById('adm-coach-name').value = saved.coachName || "Coach Rina Wijaya";
+            document.getElementById('adm-coach-bio').value = saved.coachBio || "Halo! Saya adalah Wellness Coach yang berdedikasi membantu Anda mencapai berat badan ideal dan gaya hidup sehat yang berkelanjutan. Bukan sekadar diet sesaat, tapi perubahan habit seumur hidup.";
+            document.getElementById('adm-exp-years').value = saved.expYears || "5+";
+            document.getElementById('adm-members').value = saved.members || "500+";
+            document.getElementById('adm-brand-name').value = saved.brandName || "FitLife";
+            document.getElementById('adm-footer-tagline').value = saved.footerTagline || "Independent Herbalife Member & Wellness Coach. Berkomitmen menciptakan masyarakat yang lebih sehat dan bahagia.";
+            document.getElementById('adm-supabase-url').value = saved.supabaseUrl || (APP_CONFIG.supabase.url !== "YOUR_SUPABASE_URL" ? APP_CONFIG.supabase.url : "");
+            document.getElementById('adm-supabase-key').value = saved.supabaseKey || (APP_CONFIG.supabase.anonKey !== "YOUR_SUPABASE_ANON_KEY" ? APP_CONFIG.supabase.anonKey : "");
+
+            // Nomor WA — prioritas: localStorage → APP_CONFIG → kosong
+            document.getElementById('adm-wa-number').value = saved.waNumber || APP_CONFIG.whatsapp.number;
+            document.getElementById('adm-wa-message').value = saved.waMessage || APP_CONFIG.whatsapp.defaultMessage;
 
             // Images
             const imgMap = {
-                'adm-img-hero': ['prev-hero', APP_CONFIG.images.hero],
-                'adm-img-coach': ['prev-coach', APP_CONFIG.images.coach],
-                'adm-img-com1': ['prev-com1', APP_CONFIG.images.community1],
-                'adm-img-com2': ['prev-com2', APP_CONFIG.images.community2],
-                'adm-img-testi1': ['prev-testi1', APP_CONFIG.images.testi1],
-                'adm-img-testi2': ['prev-testi2', APP_CONFIG.images.testi2],
-                'adm-img-ba': ['prev-ba', APP_CONFIG.images.beforeAfter],
+                'adm-img-hero':   ['prev-hero',   saved.imgHero   || APP_CONFIG.images.hero],
+                'adm-img-coach':  ['prev-coach',  saved.imgCoach  || APP_CONFIG.images.coach],
+                'adm-img-com1':   ['prev-com1',   saved.imgCom1   || APP_CONFIG.images.community1],
+                'adm-img-com2':   ['prev-com2',   saved.imgCom2   || APP_CONFIG.images.community2],
+                'adm-img-testi1': ['prev-testi1', saved.imgTesti1 || APP_CONFIG.images.testi1],
+                'adm-img-testi2': ['prev-testi2', saved.imgTesti2 || APP_CONFIG.images.testi2],
+                'adm-img-ba':     ['prev-ba',     saved.imgBa     || APP_CONFIG.images.beforeAfter],
             };
             Object.entries(imgMap).forEach(([inputId, [prevId, url]]) => {
                 document.getElementById(inputId).value = url;
                 document.getElementById(prevId).src = url;
             });
 
-            // Contact
-            document.getElementById('adm-wa-number').value = APP_CONFIG.whatsapp.number;
-            document.getElementById('adm-wa-message').value = APP_CONFIG.whatsapp.defaultMessage;
             updateWaPreview();
-
-            // Program preview
             updatePricingPreview();
 
-            // Bind live preview for pricing tab
             ['adm-prog-name','adm-price-normal','adm-price-promo','adm-prog-duration','adm-prog-features'].forEach(id => {
                 document.getElementById(id).addEventListener('input', updatePricingPreview);
             });
@@ -1436,7 +1450,7 @@ Konsultasi Langsung via WA</textarea>
         }
 
         function applyAdminChanges() {
-            // Update APP_CONFIG with admin values
+            // Update APP_CONFIG
             APP_CONFIG.content.headline = document.getElementById('adm-headline').value;
             APP_CONFIG.content.subheadline = document.getElementById('adm-subheadline').value;
             APP_CONFIG.images.hero = document.getElementById('adm-img-hero').value;
@@ -1448,6 +1462,29 @@ Konsultasi Langsung via WA</textarea>
             APP_CONFIG.images.beforeAfter = document.getElementById('adm-img-ba').value;
             APP_CONFIG.whatsapp.number = document.getElementById('adm-wa-number').value;
             APP_CONFIG.whatsapp.defaultMessage = document.getElementById('adm-wa-message').value;
+
+            // Simpan ke localStorage agar persisten setelah refresh
+            localStorage.setItem('fitlife_config', JSON.stringify({
+                headline: APP_CONFIG.content.headline,
+                subheadline: APP_CONFIG.content.subheadline,
+                coachName: document.getElementById('adm-coach-name').value,
+                coachBio: document.getElementById('adm-coach-bio').value,
+                expYears: document.getElementById('adm-exp-years').value,
+                members: document.getElementById('adm-members').value,
+                brandName: document.getElementById('adm-brand-name').value,
+                footerTagline: document.getElementById('adm-footer-tagline').value,
+                waNumber: APP_CONFIG.whatsapp.number,
+                waMessage: APP_CONFIG.whatsapp.defaultMessage,
+                supabaseUrl: document.getElementById('adm-supabase-url').value,
+                supabaseKey: document.getElementById('adm-supabase-key').value,
+                imgHero: APP_CONFIG.images.hero,
+                imgCoach: APP_CONFIG.images.coach,
+                imgCom1: APP_CONFIG.images.community1,
+                imgCom2: APP_CONFIG.images.community2,
+                imgTesti1: APP_CONFIG.images.testi1,
+                imgTesti2: APP_CONFIG.images.testi2,
+                imgBa: APP_CONFIG.images.beforeAfter,
+            }));
 
             // Apply to live page
             document.getElementById('hero-headline').innerHTML = APP_CONFIG.content.headline;
