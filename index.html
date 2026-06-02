@@ -76,8 +76,11 @@
         // ======= SUPABASE CREDENTIALS =======
         const SUPABASE_URL = "https://jxvemspowdcrvykkfjuh.supabase.co";
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4dmVtc3Bvd2RjcnZ5a2tmanVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzNjMxNjksImV4cCI6MjA5NTkzOTE2OX0.3xvhXmE-I3uzuV_IzZzMupxkgWWdqTrZMAPQmz2hGiE";
-        // supabase client dibuat setelah DOM ready agar window.supabase sudah tersedia
+        // Init supabase langsung - CDN sudah di <head> jadi pasti ready
         let supabase = null;
+        window.addEventListener('load', function() {
+            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        });
 
         // ======= DEFAULT CONFIG (fallback jika Supabase belum punya data) =======
         const APP_CONFIG = {
@@ -1134,8 +1137,6 @@ Konsultasi Langsung via WA</textarea>
     <script>
         // 1. INJEKSI CONFIG (load dari Supabase, fallback ke default)
         document.addEventListener('DOMContentLoaded', () => {
-            // Init supabase client di sini agar window.supabase sudah ready
-            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
             applyConfigToPage();
             loadConfigFromSupabase();
         });
@@ -1398,6 +1399,10 @@ Mohon bantuannya, terima kasih! 🙏`;
         }
 
         async function populateAdminFields() {
+            // Pastikan supabase sudah ready
+            if (!supabase) {
+                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            }
             // Load terbaru dari Supabase dulu
             try {
                 const { data, error } = await supabase.from('site_config').select('key, value');
@@ -1488,6 +1493,9 @@ Mohon bantuannya, terima kasih! 🙏`;
         }
 
         async function applyAdminChanges() {
+            if (!supabase) {
+                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            }
             const btn = document.querySelector('[onclick="applyAdminChanges()"]');
             if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>Menyimpan...'; }
 
