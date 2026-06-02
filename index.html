@@ -92,8 +92,8 @@
                 defaultMessage: "Halo Coach, saya ingin konsultasi mengenai program penurunan berat badan dan healthy lifestyle."
             },
             supabase: {
-                url: "https://jxvemspowdcrvykkfjuh.supabase.co", // GANTI DENGAN SUPABASE URL ANDA
-                anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4dmVtc3Bvd2RjcnZ5a2tmanVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzNjMxNjksImV4cCI6MjA5NTkzOTE2OX0.3xvhXmE-I3uzuV_IzZzMupxkgWWdqTrZMAPQmz2hGiE" // GANTI DENGAN SUPABASE ANON KEY ANDA
+                url: "YOUR_SUPABASE_URL", // GANTI DENGAN SUPABASE URL ANDA
+                anonKey: "YOUR_SUPABASE_ANON_KEY" // GANTI DENGAN SUPABASE ANON KEY ANDA
             }
         };
     </script>
@@ -1276,8 +1276,17 @@ Konsultasi Langsung via WA</textarea>
         }); // END DOMContentLoaded #3 (Supabase + Form)
 
         // ===================== ADMIN / LOGIN LOGIC =====================
-        const ADMIN_CREDENTIALS = { username: 'umiyati', password: 'herbalife123' };
+        // Password disimpan sebagai SHA-256 hash (bukan plaintext)
+        const ADMIN_CREDENTIALS = {
+            usernameHash: '11999edb4dbe7e9eb8cceda516fa92c9bcdd8a44822a36de3b5a095f9dac5d24',
+            passwordHash: '6db8bc87c9973764b13030670c84bd6f65da91faed63e01a625ab9187e9ff19a'
+        };
         let isLoggedIn = false;
+
+        async function hashString(str) {
+            const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+            return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+        }
 
         function openLoginModal() {
             document.getElementById('login-modal').classList.remove('hidden');
@@ -1305,10 +1314,12 @@ Konsultasi Langsung via WA</textarea>
             }
         }
 
-        function doLogin() {
+        async function doLogin() {
             const user = document.getElementById('login-username').value.trim();
             const pass = document.getElementById('login-password').value;
-            if (user === ADMIN_CREDENTIALS.username && pass === ADMIN_CREDENTIALS.password) {
+            const userHash = await hashString(user);
+            const passHash = await hashString(pass);
+            if (userHash === ADMIN_CREDENTIALS.usernameHash && passHash === ADMIN_CREDENTIALS.passwordHash) {
                 isLoggedIn = true;
                 closeLoginModal();
                 openAdminPanel();
@@ -1324,6 +1335,8 @@ Konsultasi Langsung via WA</textarea>
                 doLogin();
             }
         });
+
+
 
         function openAdminPanel() {
             document.getElementById('admin-panel').classList.remove('hidden');
