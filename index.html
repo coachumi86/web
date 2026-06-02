@@ -73,10 +73,11 @@
          Ganti link gambar dan nomor WA di sini!
     =============================================== -->
     <script>
-        // ======= SUPABASE CREDENTIALS (HARDCODED - JANGAN DIUBAH) =======
-        const SUPABASE_URL  = "https://jxvemspowdcrvykkfjuh.supabase.co";
-        const SUPABASE_KEY  = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4dmVtc3Bvd2RjcnZ5a2tmanVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzNjMxNjksImV4cCI6MjA5NTkzOTE2OX0.3xvhXmE-I3uzuV_IzZzMupxkgWWdqTrZMAPQmz2hGiE";
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        // ======= SUPABASE CREDENTIALS =======
+        const SUPABASE_URL = "https://jxvemspowdcrvykkfjuh.supabase.co";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4dmVtc3Bvd2RjcnZ5a2tmanVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzNjMxNjksImV4cCI6MjA5NTkzOTE2OX0.3xvhXmE-I3uzuV_IzZzMupxkgWWdqTrZMAPQmz2hGiE";
+        // supabase client dibuat setelah DOM ready agar window.supabase sudah tersedia
+        let supabase = null;
 
         // ======= DEFAULT CONFIG (fallback jika Supabase belum punya data) =======
         const APP_CONFIG = {
@@ -1133,6 +1134,8 @@ Konsultasi Langsung via WA</textarea>
     <script>
         // 1. INJEKSI CONFIG (load dari Supabase, fallback ke default)
         document.addEventListener('DOMContentLoaded', () => {
+            // Init supabase client di sini agar window.supabase sudah ready
+            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
             applyConfigToPage();
             loadConfigFromSupabase();
         });
